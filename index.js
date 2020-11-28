@@ -14,7 +14,7 @@ var connection= sql.createConnection({
     user: "root",
 
     password: "password",
-    database: "employeetrackerdb"
+    database: "employees_db"
 });
 
 connection.connect(function(err) {
@@ -47,10 +47,11 @@ function open() {
 }
 
 function viewAll() {
-    let allEmployees = `SELECT employeetable.employeeID, employeetable.first_name, employeetable.last_name, roletable.title, departmenttable.name, roletable.salary
-    FROM employeetable
-    INNER JOIN roletable ON roletable.roleID = employeetable.role_ID
-    INNER JOIN departmenttable ON roletable.dept_ID = departmenttable.deptID`;
+    let allEmployees = `SELECT employees.id, employees.firstname, employees.lastname, roles.title, depts.name, roles.salary
+    FROM employees
+    INNER JOIN roles ON roles.roleID = employees.role_ID
+    INNER JOIN depts ON roles.dept_ID = depts.deptID
+    ORDER BY employees.id`;
     connection.query(allEmployees, function(err, res) {
         if (err) throw err;
         console.table('\n', res, '\n', '\n');
@@ -85,11 +86,11 @@ function selectDept() {
 }
 
 function viewByDept(x) {
-    let byDept= `select employeetable.employeeID, employeetable.first_name, employeetable.last_name, roletable.title, roletable.salary
-    from employeetable
-    INNER JOIN roletable
-    ON employeetable.role_ID= roletable.roleID
-    WHERE roletable.dept_ID= ${x}`;
+    let byDept= `select employees.id, employees.firstname, employees.lastname, roles.title, roles.salary
+    from employees
+    INNER JOIN roles
+    ON employees.role_ID= roles.roleID
+    WHERE roles.dept_ID= ${x}`;
     connection.query(byDept, function(err, res) {
         if (err) throw err;
         console.table('\n', res, '\n', '\n');
@@ -101,12 +102,12 @@ function getEmployeeInfo() {
     inquirer.prompt([
         {
             type: 'input',
-            name: 'firstName',
+            name: 'first',
             message: "What is the Employees first name?"
           },
           {
             type: 'input',
-            name: 'lastName',
+            name: 'last',
             message: "What is the Employees last name?"
           },
           {
@@ -116,22 +117,21 @@ function getEmployeeInfo() {
             choices: roles
           },        
         ]).then(data => {
-            let deptIndex;
-            if (data.role === roles[0] || data.role === roles[1]) {
-                deptIndex = 1;
-            } else if (data.role === roles[2] || data.role === roles[3]) {
-                deptIndex = 2;
-            } else {
-                deptIndex = 3;
-            }
-            addEmployee(data.role, deptIndex);
+            let roleIndex;
+                for (let i = 0; i < roles.length; i++ ){
+                    if (data.role === roles[i]) {
+                        roleIndex = (i + 1);
+                    }
+                } 
+                addEmployee(data.first, data.last, roleIndex);  
     });
+}
 
-function addEmployee(title, index) {
-    let addEmp= `insert into roleTable (title, dept_ID) VALUES (?, ?)`;
-        connection.query(addEmp, [title, index], function(err) {
-            if (err) throw err;
-            console.log('\n', "Employee Successfully added", '\n', '\n');
-        });       
-    }
+function addEmployee(first, last, role) {
+    let add = `INSERT into employees (firstname, lastname, role_ID) VALUES (?, ?, ?)`;
+    connection.query(add, [first, last, role], (err) => {
+        if (err) throw err;
+        console.log('\n', "Employee Successfully added!", '\n', '\n');
+    });
+    open();
 }

@@ -2,7 +2,7 @@ const inquirer= require("inquirer");
 const sql= require("mysql");
 const cTable= require("console.table");
 const choiceArr= ['View All Employees', 'View Employees By Department', 'Add Employee', 'Remove Employee','Update Employee Role'];
-const roles= ['Software Engineer', 'Sales Lead', 'Salesperson', 'Lead Engineer', 'Lawyer', 'Legal Team Lead'];
+const roles= ['Software Engineer', 'Lead Engineer', 'Lawyer', 'Legal Team Lead', 'Salesperson', 'Sales Lead',];
 const depts= ['Engineering', 'Legal', 'Sales'];
 
 
@@ -41,8 +41,7 @@ function open() {
             selectDept();
             break;
         case choiceArr[2]:
-            addEmployee();
-            open();
+            getEmployeeInfo();
     }
 });
 }
@@ -54,7 +53,7 @@ function viewAll() {
     INNER JOIN departmenttable ON roletable.dept_ID = departmenttable.deptID`;
     connection.query(allEmployees, function(err, res) {
         if (err) throw err;
-        console.table('\n', res, '\n','\n');
+        console.table('\n', res, '\n', '\n');
     });
 }
 
@@ -93,7 +92,46 @@ function viewByDept(x) {
     WHERE roletable.dept_ID= ${x}`;
     connection.query(byDept, function(err, res) {
         if (err) throw err;
-        console.table('\n', res, '\n','\n');
+        console.table('\n', res, '\n', '\n');
     });
     open();
+}
+
+function getEmployeeInfo() {
+    inquirer.prompt([
+        {
+            type: 'input',
+            name: 'firstName',
+            message: "What is the Employees first name?"
+          },
+          {
+            type: 'input',
+            name: 'lastName',
+            message: "What is the Employees last name?"
+          },
+          {
+            type: 'list',
+            name: 'role',
+            message: "What is this employees role?",
+            choices: roles
+          },        
+        ]).then(data => {
+            let deptIndex;
+            if (data.role === roles[0] || data.role === roles[1]) {
+                deptIndex = 1;
+            } else if (data.role === roles[2] || data.role === roles[3]) {
+                deptIndex = 2;
+            } else {
+                deptIndex = 3;
+            }
+            addEmployee(data.role, deptIndex);
+    });
+
+function addEmployee(title, index) {
+    let addEmp= `insert into roleTable (title, dept_ID) VALUES (?, ?)`;
+        connection.query(addEmp, [title, index], function(err) {
+            if (err) throw err;
+            console.log('\n', "Employee Successfully added", '\n', '\n');
+        });       
+    }
 }

@@ -4,6 +4,7 @@ const cTable= require("console.table");
 const choiceArr= ['View All Employees', 'View Employees By Department', 'Add Employee', 'Remove Employee','Update Employee Role'];
 const roles= ['Software Engineer', 'Lead Engineer', 'Lawyer', 'Legal Team Lead', 'Salesperson', 'Sales Lead',];
 const depts= ['Engineering', 'Legal', 'Sales'];
+let staff;
 
 
 var connection= sql.createConnection({
@@ -24,6 +25,18 @@ connection.connect(function(err) {
 });
 
 function open() {
+    staff= [];
+    connection.query("SELECT id, firstname, lastname FROM employees", function(err, res) {
+        if (err) throw err;
+        for (let i= 0; i < res.length; i++) {
+            let obj= {
+                id: res[i].id,
+                first: res[i].firstname,
+                last: res[i].lastname
+            }
+            staff.push(obj);
+        }
+    });
     inquirer.prompt(
     {
         type: 'list',
@@ -42,6 +55,10 @@ function open() {
             break;
         case choiceArr[2]:
             getEmployeeInfo();
+            break;
+        case choiceArr[3]:
+            removeEmployee();
+            break;
     }
 });
 }
@@ -135,3 +152,17 @@ function addEmployee(first, last, role) {
     });
     open();
 }
+
+ function removeEmployee() {
+     let names= staff.map(obj => obj.first + " " + obj.last);
+    inquirer.prompt(
+        {
+            type: 'list',
+            name: 'delete',
+            message: "Which employee would you like to remove?",
+            choices: names
+          }
+    ).then(data => {
+        console.log(data.delete);
+    })
+ }

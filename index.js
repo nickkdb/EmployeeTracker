@@ -3,6 +3,7 @@ const sql= require("mysql");
 const cTable= require("console.table");
 const choiceArr= ['View Employees', 'View Departments', 'View Roles', 'Add Data', 'Remove Employee', 'Update Employee Role'];
 const viewArr= ['View All Employees', 'View Employees By Department', 'View Employees By Role'];
+const addArr= ['Add Employee', 'Add Role', 'Add Department'];
 let staff, roles, depts;
 
 
@@ -82,7 +83,7 @@ function open() {
             viewAll("roles");
             break;
         case choiceArr[3]:
-            chooseEmployee("remove");
+            selectAddType();
             break;
         case choiceArr[4]:
             chooseEmployee("update");
@@ -134,7 +135,7 @@ function viewAll(type) {
             updateData();
         });
     } else {
-        let viewRoles= `select roles.title, roles.salary, depts.department from roles INNER JOIN depts ON roles.dept_ID = depts.deptID order by roles.roleID`;
+        let viewRoles= `select roles.roleID, roles.title, roles.salary, depts.department from roles INNER JOIN depts ON roles.dept_ID = depts.deptID order by roles.roleID`;
         connection.query(viewRoles, function(err, res) {
             if (err) throw err;
             console.table('\n', res);
@@ -207,4 +208,79 @@ function viewBy(type, x) {
         updateData();
     });
     }
+}
+
+function selectAddType() {
+    inquirer.prompt(
+        {
+            type: 'list',
+            name: 'addtype',
+            message: "What would you like to add to the system?",
+            choices: addArr
+        }
+    ).then(data => {
+        if (data.addtype === addArr[0]) {
+            getEmployeeInfo();
+        } else if (data.addtype === addArr[1]) {
+            addRole();
+        } else {
+            addDept();
+        }
+    });
+}
+
+function getEmployeeInfo() {
+    let listRoles= roles.map(obj => obj.title);
+    inquirer.prompt([
+        {
+            type: 'input',
+            name: 'first',
+            message: "What is the Employees first name?"
+          },
+          {
+            type: 'input',
+            name: 'last',
+            message: "What is the Employees last name?"
+          },
+          {
+            type: 'list',
+            name: 'role',
+            message: "What is this employees role?",
+            choices: listRoles
+          },        
+        ]).then(data => {
+            let roleIndex;
+                for (let element of roles){
+                    if (data.role === element.title) {
+                        roleIndex= element.roleID;
+                    }
+                } 
+            addEmployee(data.first, data.last, roleIndex);
+    });
+}
+
+function addEmployee(first, last, role) {
+    let add = `INSERT into employees (firstname, lastname, role_ID) VALUES (?, ?, ?)`;
+    connection.query(add, [first, last, role], function (err) {
+        if (err) throw err;
+        console.log('\n', "Employee Successfully added!");
+        updateData();
+    });
+}
+
+function addDept() {
+    inquirer.prompt([
+        {
+            type: 'input',
+            name: 'newDept',
+            message: "Enter the name of the department you wish to add:"
+          }
+        ]).then(data => {
+            let newDept= `INSERT into depts (department) VALUE ("${data.newDept}")`;
+            connection.query(newDept, function (err) {
+                if (err) throw err;
+                console.log('\n', "Department succesfully added!");
+                updateData();
+            });
+        })
 }

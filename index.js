@@ -169,6 +169,8 @@ function selectDept(type) {
             viewBy("dept", idToUse);
         } else if (type === "remove?") {
             removeDept(idToUse);
+        } else if (type === "update") {
+            updateDept(idToUse);
         }
     });
 }
@@ -193,6 +195,8 @@ function selectRole(type) {
                 viewBy("role", roleToUse);  
             } else if (type === "remove") {
                 removeRole(roleToUse);
+            } else if (type === "update") {
+                roleProperty(roleToUse);
             }
     });
 }
@@ -262,6 +266,15 @@ function selectType(type) {
                 break;
             case removeArr[2]:
                 selectDept("remove?");
+                break;
+            case updateArr[0]:
+                chooseEmployee("update");
+                break;
+            case updateArr[1]:
+                selectRole("update");
+                break;
+            case updateArr[2]:
+                selectDept("update");
         }
     });
 }
@@ -412,5 +425,111 @@ function removeDept(select) {
         console.log('\n', "Department succesfully deleted from database");
         updateData();
     });
+}
+
+function updateEmployee(select) {
+    let arr= ["first name", "last name", "role ID"];
+    inquirer.prompt(
+        {
+            type: 'list',
+            name: 'update',
+            message: `Choose property to update for selected employee:`,
+            choices: arr
+          }
+    ).then(data => {
+        let holder= data.update;
+        updateInfo(select, holder);
+        
+    });
+}
+
+function updateInfo(name, input) {
+    var change;
+    var question;
+    var regex= /name/;
+    if (regex.test(input)) {
+        change= input.replace(/\s/, "");
+        question= `'input'`;
+    } else {
+        change= input.replace(/\s/, "_");
+        question= `'number'`;
+    }
+    inquirer.prompt(
+        {
+            type: question,
+            name: 'newUpdate',
+            message: `Enter updated ${input} for employee:`            
+          }
+    ).then(data => {
+        let idToUpdate;
+    for (let element of staff) {
+       let el= element.first + " " + element.last;
+       if (el == name) {
+           idToUpdate= element.id;
+       }
+   }
+    connection.query(`update employees set ${change}= "${data.newUpdate}" where id= ${idToUpdate}`, (err) => {
+        if (err) throw err;
+        console.log(`Succesfully updated employee's ${input}`);
+        updateData();
+    })
+    })
+}
+function roleProperty(input) {
+    let arr= ["title", "salary", "department ID"];
+    inquirer.prompt(
+        {
+            type: 'list',
+            name: 'updateRole',
+            message: `Choose property to update for selected role:`,
+            choices: arr
+          }
+    ).then(data => {
+        var holder;
+        if (data.updateRole=== arr[2]) {
+            holder= "dept_ID";
+        } else {
+            holder= data.updateRole;
+        }
+        updateRole(input, holder);
+    })
+}
+
+function updateRole(select, property) {
+    var question;
+    if (property === "title") {
+    question= `'input'`;
+    } else {
+    question= `'number'`;
+    }
+inquirer.prompt(
+    {
+        type: question,
+        name: 'roleUpdate',
+        message: `Enter updated ${property}:`            
+      }
+    ).then(data => {
+        connection.query(`update roles set ${property}= "${data.roleUpdate}" where roleID= ${select}`, (err) => {
+            if (err) throw err;
+            console.log(`succesfully updated role's ${property}`);
+            updateData();
+        })
+    })
+}
+
+function updateDept(input) {
+    inquirer.prompt(
+        {
+            type: 'input',
+            name: 'deptUpdate',
+            message: `Enter updated Department name:`            
+          }
+        ).then(data => {
+            connection.query(`update depts set department= "${data.deptUpdate}" where deptID= ${input}`, (err) => {
+                if (err) throw err;
+                console.log("succesfully updated department");
+                updateData();
+            })
+        })
 }
 

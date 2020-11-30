@@ -1,10 +1,11 @@
 const inquirer= require("inquirer");
 const sql= require("mysql");
 const cTable= require("console.table");
-const choiceArr= ['View Employees', 'View Departments', 'View Roles', 'Add Data', 'Remove Data', 'Update Employee Role'];
+const choiceArr= ['View Employees', 'View Departments', 'View Roles', 'Add Data', 'Remove Data', 'Update Data'];
 const viewArr= ['View All Employees', 'View Employees By Department', 'View Employees By Role'];
 const addArr= ['Add Employee', 'Add Role', 'Add Department'];
 const removeArr= ['Remove Employee', 'Remove Role', 'Remove Department'];
+const updateArr= ['Update an Employee', 'Update Role', 'Update Department'];
 let staff, roles, depts;
 
 
@@ -89,6 +90,9 @@ function open() {
         case choiceArr[4]:
             selectType("remove");
             break;
+        case choiceArr[5]:
+            selectType("update");
+            break;
     }
 });
 }
@@ -107,10 +111,10 @@ function view() {
                     viewAll("employees");
                     break;
                 case viewArr[1]:
-                    selectDept();
+                    selectDept("view by?");
                     break;
                 case viewArr[2]:
-                    selectRole();
+                    selectRole("view by?");
                     break;
                 
             }
@@ -121,8 +125,8 @@ function viewAll(type) {
     if (type === "employees") {
         let allEmployees = `SELECT employees.id, employees.firstname, employees.lastname, roles.title, depts.department, roles.salary
         FROM employees
-        INNER JOIN roles ON roles.roleID = employees.role_ID
-        INNER JOIN depts ON roles.dept_ID = depts.deptID
+        LEFT JOIN roles ON roles.roleID = employees.role_ID
+        LEFT JOIN depts ON roles.dept_ID = depts.deptID
         ORDER BY employees.id`;
         connection.query(allEmployees, function(err, res) {
             if (err) throw err;
@@ -136,7 +140,7 @@ function viewAll(type) {
             updateData();
         });
     } else {
-        let viewRoles= `select roles.roleID, roles.title, roles.salary, depts.department from roles INNER JOIN depts ON roles.dept_ID = depts.deptID order by roles.roleID`;
+        let viewRoles= `select roles.roleID, roles.title, roles.salary, depts.department from roles LEFT JOIN depts ON roles.dept_ID = depts.deptID order by roles.roleID`;
         connection.query(viewRoles, function(err, res) {
             if (err) throw err;
             console.table('\n', res);
@@ -145,43 +149,51 @@ function viewAll(type) {
     }
 }
 
-function selectDept() {
+function selectDept(type) {
     let listDepts= depts.map(obj => obj.dept);
     inquirer.prompt(
         {
             type: 'list',
             name: 'depts',
-            message: "What department would you like to view?",
+            message: `What department would you like to ${type}`,
             choices: listDepts
           }
     ).then(data => {
-        let idToView;
+        let idToUse;
         for (let element of depts) {
             if (data.depts === element.dept) {
-                idToView= element.deptID;
+                idToUse= element.deptID;
             }
         }
-        viewBy("dept", idToView);
+        if (type === "view by?") {
+            viewBy("dept", idToUse);
+        } else if (type === "remove?") {
+            removeDept(idToUse);
+        }
     });
 }
 
-function selectRole() {
+function selectRole(type) {
     let listRoles= roles.map(obj => obj.title);
     inquirer.prompt(
         {
             type: 'list',
             name: 'role',
-            message: "What role would you like to view by?",
+            message: `What role would you like to ${type}`,
             choices: listRoles
         }
     ).then(data => {
-        let roleToView;
-        for (let element of roles) {
-            if (data.role === element.title) {
-                roleToView= element.roleID;
+        let roleToUse;
+            for (let element of roles) {
+                if (data.role === element.title) {
+                    roleToUse= element.roleID;
+                }
             }
-        }
-        viewBy("role", roleToView);
+            if (type === "view by?") {
+                viewBy("role", roleToUse);  
+            } else if (type === "remove") {
+                removeRole(roleToUse);
+            }
     });
 }
 
@@ -220,6 +232,9 @@ function selectType(type) {
     } else if (type === "remove"){
         fill= "from";
         fillArr= removeArr;
+    } else if (type === "update"){
+        fill= "in";
+        fillArr= updateArr;
     }
     inquirer.prompt(
         {
@@ -229,14 +244,24 @@ function selectType(type) {
             choices: fillArr
         }
     ).then(data => {
-        if (data.type === addArr[0]) {
-            getEmployeeInfo();
-        } else if (data.type === addArr[1]) {
-            addRole();
-        } else if (data.type === addArr[2]){
-            addDept();
-        } else if (data.type === removeArr[0]) {
-            chooseEmployee("remove");
+        switch (data.type) {
+            case addArr[0]:
+                getEmployeeInfo();
+                break;
+            case addArr[1]:
+                addRole();
+                break;
+            case addArr[2]:
+                addDept();
+                break;
+            case removeArr[0]:
+                chooseEmployee("remove");
+                break;
+            case removeArr[1]:
+                selectRole("remove");
+                break;
+            case removeArr[2]:
+                selectDept("remove?");
         }
     });
 }
@@ -366,3 +391,26 @@ function removeEmployee(person) {
        updateData();
    });
 }
+
+function removeRole(select) {
+    connection.query(`update employees set role_ID= null where role_ID= ${select}`, (err) => {
+        if (err) throw err;
+    });
+    connection.query(`delete from roles where roleID= ${select}`, (err) => {
+        if (err) throw err;
+        console.log('\n', "Role succesfully deleted from database");
+        updateData();
+    });
+}
+
+function removeDept(select) {
+    connection.query(`update roles set dept_ID= null where dept_ID= ${select}`, (err) => {
+        if (err) throw err;
+    });
+    connection.query(`delete from depts where deptID= ${select}`, (err) => {
+        if (err) throw err;
+        console.log('\n', "Department succesfully deleted from database");
+        updateData();
+    });
+}
+

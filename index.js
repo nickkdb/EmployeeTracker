@@ -1,9 +1,10 @@
 const inquirer= require("inquirer");
 const sql= require("mysql");
 const cTable= require("console.table");
-const choiceArr= ['View Employees', 'View Departments', 'View Roles', 'Add Data', 'Remove Employee', 'Update Employee Role'];
+const choiceArr= ['View Employees', 'View Departments', 'View Roles', 'Add Data', 'Remove Data', 'Update Employee Role'];
 const viewArr= ['View All Employees', 'View Employees By Department', 'View Employees By Role'];
 const addArr= ['Add Employee', 'Add Role', 'Add Department'];
+const removeArr= ['Remove Employee', 'Remove Role', 'Remove Department'];
 let staff, roles, depts;
 
 
@@ -83,10 +84,10 @@ function open() {
             viewAll("roles");
             break;
         case choiceArr[3]:
-            selectAddType();
+            selectType("add");
             break;
         case choiceArr[4]:
-            chooseEmployee("update");
+            selectType("remove");
             break;
     }
 });
@@ -210,21 +211,32 @@ function viewBy(type, x) {
     }
 }
 
-function selectAddType() {
+function selectType(type) {
+    let fill;
+    let fillArr;
+    if (type === "add") {
+        fill= "to";
+        fillArr= addArr;
+    } else if (type === "remove"){
+        fill= "from";
+        fillArr= removeArr;
+    }
     inquirer.prompt(
         {
             type: 'list',
-            name: 'addtype',
-            message: "What would you like to add to the system?",
-            choices: addArr
+            name: 'type',
+            message: `What would you like to ${type} ${fill} the system?`,
+            choices: fillArr
         }
     ).then(data => {
-        if (data.addtype === addArr[0]) {
+        if (data.type === addArr[0]) {
             getEmployeeInfo();
-        } else if (data.addtype === addArr[1]) {
+        } else if (data.type === addArr[1]) {
             addRole();
-        } else {
+        } else if (data.type === addArr[2]){
             addDept();
+        } else if (data.type === removeArr[0]) {
+            chooseEmployee("remove");
         }
     });
 }
@@ -283,4 +295,74 @@ function addDept() {
                 updateData();
             });
         })
+}
+
+function addRole() {
+    let listDepts= depts.map(obj => obj.dept);
+    inquirer.prompt([
+        {
+            type: 'input',
+            name: 'newRole',
+            message: "Enter the name of the role you wish to add:"
+          },
+          {
+            type: 'list',
+            name: 'chooseDept',
+            message: "Select the department for this role:",
+            choices: listDepts
+          },
+          {
+            type: 'number',
+            name: 'salary',
+            message: "Enter the salary of the role you wish to add:"
+          }
+        ]).then(data => {
+            let idToAdd;
+        for (let element of depts) {
+            if (data.chooseDept === element.dept) {
+                idToAdd= element.deptID;
+            }
+        }
+            let newRole= `INSERT INTO roles (title, salary, dept_ID) VALUE ("${data.newRole}", ${data.salary}, ${idToAdd})`;
+            connection.query(newRole, function (err) {
+                if (err) throw err;
+                console.log('\n', "Role succesfully added!");
+                updateData();
+            });
+        });
+}
+
+function chooseEmployee(select) {
+    let names= staff.map(obj => obj.first + " " + obj.last);
+   inquirer.prompt(
+       {
+           type: 'list',
+           name: 'selection',
+           message: `Choose the employee you would like to ${select}:`,
+           choices: names
+         }
+   ).then(data => {
+       if (select === "remove") {
+           let remove= data.selection;
+           removeEmployee(remove);
+       } else if (select === "update") {
+           let update= data.selection;
+           updateEmployee(update);
+       }
+   })
+}
+
+function removeEmployee(person) {
+    let idToRemove;
+    for (let element of staff) {
+       let el= element.first + " " + element.last;
+       if (el == person) {
+           idToRemove= element.id;
+       }
+   }
+   connection.query(`delete from employees where id= ${idToRemove}`, (err) => {
+       if (err) throw err;
+       console.table('\n', "Employee successfully removed from database");
+       updateData();
+   });
 }

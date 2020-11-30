@@ -2,7 +2,7 @@ const inquirer= require("inquirer");
 const sql= require("mysql");
 const cTable= require("console.table");
 const choiceArr= ['View All Employees', 'View Employees By Department', 'Add Employee', 'Remove Employee','Update Employee Role'];
-const roles= ['Software Engineer', 'Lead Engineer', 'Lawyer', 'Legal Team Lead', 'Salesperson', 'Sales Lead',];
+const roles= ['Software Engineer', 'Lead Engineer', 'Lawyer', 'Legal Team Lead', 'Salesperson', 'Sales Lead'];
 const depts= ['Engineering', 'Legal', 'Sales'];
 let staff;
 
@@ -37,18 +37,17 @@ function open() {
             staff.push(obj);
         }
     });
-    inquirer.prompt(
+    inquirer.prompt([
     {
         type: 'list',
         name: 'options',
         message: "What would you like to do?",
         choices: choiceArr
       }
-).then(data => {
+    ]).then(data => {
     switch(data.options) {
         case choiceArr[0]:
             viewAll();
-            open();
             break;
         case choiceArr[1]:
             selectDept();
@@ -57,7 +56,10 @@ function open() {
             getEmployeeInfo();
             break;
         case choiceArr[3]:
-            removeEmployee();
+            chooseEmployee("remove");
+            break;
+        case choiceArr[4]:
+            chooseEmployee("update");
             break;
     }
 });
@@ -71,7 +73,8 @@ function viewAll() {
     ORDER BY employees.id`;
     connection.query(allEmployees, function(err, res) {
         if (err) throw err;
-        console.table('\n', res, '\n', '\n');
+        console.table('\n', res);
+        open();
     });
 }
 
@@ -110,9 +113,9 @@ function viewByDept(x) {
     WHERE roles.dept_ID= ${x}`;
     connection.query(byDept, function(err, res) {
         if (err) throw err;
-        console.table('\n', res, '\n', '\n');
+        console.table('\n', res);
+        open();
     });
-    open();
 }
 
 function getEmployeeInfo() {
@@ -146,23 +149,43 @@ function getEmployeeInfo() {
 
 function addEmployee(first, last, role) {
     let add = `INSERT into employees (firstname, lastname, role_ID) VALUES (?, ?, ?)`;
-    connection.query(add, [first, last, role], (err) => {
+    connection.query(add, [first, last, role], function (err, res) {
         if (err) throw err;
-        console.log('\n', "Employee Successfully added!", '\n', '\n');
+        console.log('\n', "Employee Successfully added!");
+        open();
     });
-    open();
 }
 
- function removeEmployee() {
+ function chooseEmployee(select) {
      let names= staff.map(obj => obj.first + " " + obj.last);
     inquirer.prompt(
         {
             type: 'list',
             name: 'delete',
-            message: "Which employee would you like to remove?",
+            message: `Choose the employee you would like to ${select}`,
             choices: names
           }
     ).then(data => {
-        console.log(data.delete);
+        if (select === "remove") {
+            let choice= data.delete;
+            removeEmployee(choice);
+        } else if (select === "update") {
+            console.log("update was chosen");
+        }
     })
+ }
+
+ function removeEmployee(person) {
+     let idToRemove;
+     for (let element of staff) {
+        let el= element.first + " " + element.last;
+        if (el == person) {
+            idToRemove= element.id;
+        }
+    }
+    connection.query(`delete from employees where id= ${idToRemove}`, (err) => {
+        if (err) throw err;
+        console.table('\n', "Employee successfully removed from database");
+        open();
+    });
  }

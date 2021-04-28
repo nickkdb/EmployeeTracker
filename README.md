@@ -8,6 +8,8 @@
 - [Testing](#Testing)
 - [Contributing](#Contributing)
 - [Questions](#Questions)
+
+<img src= "./screenshot.png" alt= "screenshot">
     
 ## License
 > [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) - this project is protected through the GNU GPLv3 license
